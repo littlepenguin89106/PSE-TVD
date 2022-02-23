@@ -136,6 +136,7 @@ def main(args):
                 print(f"DLoss: {d_loss.item():.6f}, GLoss: {g_loss.item():.6f}")
                 d_losses.append(d_loss.item())
                 g_losses.append(g_loss.item())
+                train_losses.append(loss/len(train_loader.dataset))
 
         print(f"====> Epoch: {epoch} Average loss: {train_loss/len(train_loader.dataset):.6f}")
 
@@ -153,7 +154,7 @@ def main(args):
                 test_loss += mse_criterion(field, fake_field).item() * len(sparams)
 
         test_losses.append(test_loss / len(test_loader.dataset))
-        print(f"====> Epoch: {epoch} Test set loss: {test_losses[-1]:.4f}")
+        print(f"====> Epoch: {epoch} Test set loss: {test_losses[-1]:.6f}")
 
         # saving...
         if epoch % args.check_every == 0:
@@ -167,7 +168,7 @@ def main(args):
                         "g_losses": g_losses,
                         "train_losses": train_losses,
                         "test_losses": test_losses},
-                        Path(args.storage,f'model_{epoch}_{train_losses[-1]}_{test_losses[-1]}.pth.tar'))
+                        Path(args.storage,f'model_{epoch}_{train_losses[-1]:6f}_{test_losses[-1]:6f}.pth.tar'))
 
 if __name__ == "__main__":
     parser = basic_parser()
