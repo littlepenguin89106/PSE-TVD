@@ -53,7 +53,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                             shuffle=True,drop_last=True, **kwargs)
 
-    g_model = Generator(dsp=args.dsp,dspe=args.dspe,ch=args.ch)
+    g_model = Generator(dsp=args.dsp,dspe=args.dspe,ch=args.ch,hidden_nums=args.hidden_nums)
     g_model.apply(weights_init)
     if args.data_parallel and torch.cuda.device_count() > 1:
         g_model = nn.DataParallel(g_model)

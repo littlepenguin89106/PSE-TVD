@@ -21,6 +21,8 @@ def add_train_args(parser):
                         help="beta1 of Adam")
     parser.add_argument("--beta2", type=float, default=0.999,
                         help="beta2 of Adam")
+    parser.add_argument("--hidden_nums", type=int, default=256,
+                        help="number of hidden node in self mod")
 
     parser.add_argument("--batch-size", type=int, default=32,
                         help="batch size for training")

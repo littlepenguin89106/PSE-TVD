@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 from .resblock import GenResBlock,DisResBlock,OptimDisResBlock
+from .self_mod import SelfModBatchNorm
 
 class Generator(nn.Module):
-    def __init__(self,dsp,dspe,ch):
+    def __init__(self,dsp,dspe,ch,hidden_nums):
         super(Generator,self).__init__()
         self.dsp,self.dspe = dsp,dspe
         self.ch = ch
@@ -11,17 +12,22 @@ class Generator(nn.Module):
         self.sp_sub = nn.Sequential(
             nn.Linear(dsp,dspe),nn.ReLU(),
             nn.Linear(dspe,dspe),nn.ReLU(),
-            nn.Linear(dspe,ch * 16 * 4 * 4)
         )
 
-        self.blocks = nn.Sequential(
-            GenResBlock(ch * 16,ch * 16),
-            GenResBlock(ch * 16,ch * 8),
-            GenResBlock(ch * 8,ch * 8),
-            GenResBlock(ch * 8,ch * 4),
-            GenResBlock(ch * 4,ch * 2),
-            GenResBlock(ch * 2,ch),
-            nn.BatchNorm2d(ch),
+        self.linear0 = nn.Linear(dspe,ch * 16 * 4 * 4)
+
+        self.blocks = nn.ModuleList([
+            GenResBlock(ch * 16,ch * 16,hidden_nums),
+            GenResBlock(ch * 16,ch * 8,hidden_nums),
+            GenResBlock(ch * 8,ch * 8,hidden_nums),
+            GenResBlock(ch * 8,ch * 4,hidden_nums),
+            GenResBlock(ch * 4,ch * 2,hidden_nums),
+            GenResBlock(ch * 2,ch,hidden_nums),
+        ])
+
+        self.smbn0 = SelfModBatchNorm(512,ch,hidden_nums)
+
+        self.out_sub = nn.Sequential(
             nn.ReLU(),
             nn.Conv2d(ch,1,3,1,1),
             nn.Tanh()
@@ -29,8 +35,15 @@ class Generator(nn.Module):
 
     def forward(self,sp):
         sp = self.sp_sub(sp)
-        sp = sp.view(sp.size(0),self.ch * 16,4,4)
-        out = self.blocks(sp)
+        z = sp
+        out = self.linear0(sp)
+        out = out.view(out.size(0),self.ch * 16,4,4)
+
+        for m in self.blocks:
+            out = m(out,z)
+
+        out = self.smbn0(out,z)
+        out = self.out_sub(out)
 
         return out
 
