@@ -9,9 +9,10 @@ from torch.utils.data import DataLoader
 from model.insitu import Generator
 from model.insitu import Discriminator
 
-from data.data import IsabelDataset
+from data.deep_water import DeepWaterDataset
 from pathlib import Path
 from option import basic_parser,add_train_args
+import numpy as np
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
@@ -43,9 +44,9 @@ def main(args):
     torch.manual_seed(args.seed)
 
     # data loader
-    train_dataset = IsabelDataset(args.data,'train.txt')
+    train_dataset = DeepWaterDataset(args.data,'train.pkl')
 
-    test_dataset = IsabelDataset(args.data,'test.txt')
+    test_dataset = DeepWaterDataset(args.data,'test.pkl')
 
     kwargs = {"num_workers": 2, "pin_memory": True} if args.cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
@@ -98,8 +99,10 @@ def main(args):
         train_loss = 0.
         
         for i, sample in enumerate(train_loader):
-            field = sample["f"].to(device)
-            sparams = sample["sp"].to(device)
+            field = sample["out"].to(device)
+            
+            sparams = torch.stack(list(sample['in'].values()),1)
+
             g_optimizer.zero_grad()
             fake_field = g_model(sparams)
 
@@ -148,8 +151,9 @@ def main(args):
         test_loss = 0.
         with torch.no_grad():
             for i, sample in enumerate(test_loader):
-                field = sample["f"].to(device)
-                sparams = sample["sp"].to(device)
+                field = sample["out"].to(device)
+                sparams = torch.stack(list(sample['in'].values()),1)
+
                 fake_field = g_model(sparams)
                 test_loss += mse_criterion(field, fake_field).item() * len(sparams)
 
