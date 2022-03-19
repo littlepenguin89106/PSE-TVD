@@ -9,9 +9,10 @@ from torch.utils.data import DataLoader
 from model.insitu import Generator
 from model.insitu import Discriminator
 
-from data.data import IsabelDataset
+from data.deep_water import DeepWaterDataset
 from pathlib import Path
 from option import basic_parser,add_train_args
+import numpy as np
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
@@ -43,9 +44,9 @@ def main(args):
     torch.manual_seed(args.seed)
 
     # data loader
-    train_dataset = IsabelDataset(args.data,'train.txt')
+    train_dataset = DeepWaterDataset(args.data,'train.pkl')
 
-    test_dataset = IsabelDataset(args.data,'test.txt')
+    test_dataset = DeepWaterDataset(args.data,'test.pkl')
 
     kwargs = {"num_workers": 2, "pin_memory": True} if args.cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
@@ -98,8 +99,10 @@ def main(args):
         train_loss = 0.
         
         for i, sample in enumerate(train_loader):
-            field = sample["f"].to(device)
-            sparams = sample["sp"].to(device)
+            field = sample["out"].to(device)
+            
+            sparams = torch.cat(list(sample['in'].values()),1).to(device)
+
             g_optimizer.zero_grad()
             fake_field = g_model(sparams)
 
@@ -136,7 +139,7 @@ def main(args):
                 print(f"DLoss: {d_loss.item():.6f}, GLoss: {g_loss.item():.6f}")
                 d_losses.append(d_loss.item())
                 g_losses.append(g_loss.item())
-                train_losses.append(loss/len(train_loader.dataset))
+                train_losses.append(train_loss/len(train_loader.dataset))
 
         print(f"====> Epoch: {epoch} Average loss: {train_loss/len(train_loader.dataset):.6f}")
 
@@ -148,8 +151,9 @@ def main(args):
         test_loss = 0.
         with torch.no_grad():
             for i, sample in enumerate(test_loader):
-                field = sample["f"].to(device)
-                sparams = sample["sp"].to(device)
+                field = sample["out"].to(device)
+                sparams = torch.cat(list(sample['in'].values()),1).to(device)
+
                 fake_field = g_model(sparams)
                 test_loss += mse_criterion(field, fake_field).item() * len(sparams)
 
@@ -168,7 +172,7 @@ def main(args):
                         "g_losses": g_losses,
                         "train_losses": train_losses,
                         "test_losses": test_losses},
-                        Path(args.storage,f'model_{epoch}_{train_losses[-1]:6f}_{test_losses[-1]:6f}.pth.tar'))
+                        Path(args.storage,f'model_{epoch}_{train_losses[-1]:.6f}_{test_losses[-1]:.6f}.pth.tar'))
 
 if __name__ == "__main__":
     parser = basic_parser()
