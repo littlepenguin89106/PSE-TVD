@@ -101,7 +101,7 @@ def main(args):
         for i, sample in enumerate(train_loader):
             field = sample["out"].to(device)
             
-            sparams = torch.stack(list(sample['in'].values()),1)
+            sparams = torch.cat(list(sample['in'].values()),1).to(device)
 
             g_optimizer.zero_grad()
             fake_field = g_model(sparams)
@@ -152,7 +152,7 @@ def main(args):
         with torch.no_grad():
             for i, sample in enumerate(test_loader):
                 field = sample["out"].to(device)
-                sparams = torch.stack(list(sample['in'].values()),1)
+                sparams = torch.cat(list(sample['in'].values()),1).to(device)
 
                 fake_field = g_model(sparams)
                 test_loss += mse_criterion(field, fake_field).item() * len(sparams)

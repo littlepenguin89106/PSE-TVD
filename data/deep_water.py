@@ -51,26 +51,27 @@ class DeepWaterDataset(Dataset):
         burst = normalize(burst,0,15)
         burst = convert_tensor([burst])
 
-        s_asteriod = self.label_list[index]['asteriod']
+        s_asteriod = self.label_list.iloc[index]['asteriod']
         asteriod = transfer_asteriod(s_asteriod)
         asteriod = normalize(asteriod,100,500)
         asteriod = convert_tensor([asteriod])
         
-        s_angle = self.label_list[index]['angle']
+        s_angle = self.label_list.iloc[index]['angle']
         angle = transfer_angle(s_angle)
         angle = normalize(angle,27.4,60)
         angle = convert_tensor([angle])
         
-        s_z = self.label_list[index]['axis_z']
-        z = normalize(int(s_z))
+        s_z = self.label_list.iloc[index]['axis_z']
+        z = normalize(int(s_z),0,299)
+        z = convert_tensor([z])
         
-        s_time = self.label_list[index]['time']
-        time = normalize(int(s_time))
+        s_time = self.label_list.iloc[index]['time']
+        time = normalize(int(s_time),0,220062)
         time = convert_tensor([time])
         
         field_path = pathlib.Path(self.data_path,f'y{s_burst}{s_asteriod}{s_angle}',f'{s_z}_{s_time}.bin')
         field = self.data_preproccess(field_path)
-        field = convert_tensor([field])
+        field = convert_tensor(field)
 
         params = {'burst':burst,'angle':angle,'z':z,'time':time}
 
@@ -84,10 +85,11 @@ class DeepWaterDataset(Dataset):
     def read_file(self, filename):
         file_path = pathlib.Path(self.data_path,filename)
         self.label_list = pd.read_pickle(file_path)
+        self.size = len(self.label_list)
 
     def data_preproccess(self, data_path):
         raw_data = np.fromfile(data_path, dtype='float32')
-        raw_data = normalize(raw_data,-5471.85791,3225.42578)
+        raw_data = normalize(raw_data,-2.239696925053734e-07,7.96058750165821)
         raw_data = raw_data.reshape(1, 256, 256)
 
         return raw_data

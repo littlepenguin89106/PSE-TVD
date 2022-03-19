@@ -4,19 +4,22 @@ from pathlib import Path
 import scipy.ndimage
 import numpy as np
 import pandas as pd
+import random
+
+random.seed(0)
 
 # for already split ensemble data
-def split_dataset(ens_path, ratio):
+def split_dataset(select_file, ratio):
 
     def write_list(arr,filename):
         df = pd.DataFrame(arr)
         df.to_pickle(filename)
 
-    ensemble = [Path(ens_path,m) for m in ['yA31','yB31','yC31']]
+    with open(select_file,'r') as f:
+        slices = f.readlines()
+    random.shuffle(slices)
 
-    total_num = 0
-    for m in ensemble:
-        total_num += len(m.iterdir())
+    total_num = len(slices)
 
     test_num = total_num * ratio
     sample_range = total_num // test_num
@@ -25,17 +28,18 @@ def split_dataset(ens_path, ratio):
     test_list = []
     train_list = []
 
-    for m in ensemble:
-        m_params = m.stem
+    for s in slices:
+        s_parts = Path(s.strip()).parts
+        m_params = s_parts[-2]
+        s_params = s_parts[-1].split('_')
 
-        for f in m:
-            f_params = f.stem.split('_')
+        for f in s:
             param_dict = {
-                'burst': m_params[0],
-                'asteriod': m_params[1],
-                'angle': m_params[2],
-                'axis_z': f_params[0],
-                'time': f_params[1]
+                'burst': m_params[1],
+                'asteriod': m_params[2],
+                'angle': m_params[3],
+                'axis_z': s_params[0],
+                'time': s_params[1].rstrip('.bin')
             }
 
             if count % sample_range == 0:
