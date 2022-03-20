@@ -33,21 +33,20 @@ def split_dataset(select_file, ratio):
         m_params = s_parts[-2]
         s_params = s_parts[-1].split('_')
 
-        for f in s:
-            param_dict = {
-                'burst': m_params[1],
-                'asteriod': m_params[2],
-                'angle': m_params[3],
-                'axis_z': s_params[0],
-                'time': s_params[1].rstrip('.bin')
-            }
+        param_dict = {
+            'burst': m_params[1],
+            'asteriod': m_params[2],
+            'angle': m_params[3],
+            'axis_z': s_params[0],
+            'time': s_params[1].rstrip('.bin')
+        }
 
-            if count % sample_range == 0:
-                test_list.append(param_dict)
-            else:
-                train_list.append(param_dict)
+        if count % sample_range == 0:
+            test_list.append(param_dict)
+        else:
+            train_list.append(param_dict)
 
-            count += 1
+        count += 1
             
     write_list(test_list,"test.pkl")
     write_list(train_list,"train.pkl")
@@ -78,6 +77,21 @@ def split_x(src_path, dst_path, scalar, log_file):
             with open(log_file, 'a') as rf:
                 rf.write(f'{f}\n')
 
+def cal_min_max(ens_path):
+    data_max = -float('inf')
+    data_min = float('inf')
+    ensemble = Path(ens_path).iterdir()
+
+    for m in ensemble:
+        for f in m.iterdir():
+            data = np.fromfile(f)
+            if(data_max < np.max(data)):
+                data_max = np.max(data)
+            if(data_min > np.min(data)):
+                data_min = np.min(data)
+
+    with open('deep_water_min_max.txt','w') as f:
+        f.write(f'min:{data_min} max:{data_max}')
 
 if __name__ == "__main__":
     fire.Fire()
