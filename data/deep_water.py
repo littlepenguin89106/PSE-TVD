@@ -21,7 +21,7 @@ def transfer_asteriod(s):
     elif s=="3":
         return 250
     elif s=="5":
-        return 300
+        return 500
 
 def transfer_angle(s):
     if s=="0":
