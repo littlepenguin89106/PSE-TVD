@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import pathlib
 import numpy as np
+from skimage import io
 from .normalize import normalize
 import pandas as pd
 import torch
@@ -61,21 +62,17 @@ class DeepWaterDataset(Dataset):
         angle = normalize(angle,27.4,60)
         angle = convert_tensor([angle])
         
-        s_z = self.label_list.iloc[index]['axis_z']
-        z = normalize(int(s_z),0,299)
-        z = convert_tensor([z])
-        
         s_time = self.label_list.iloc[index]['time']
-        time = normalize(int(s_time),0,220062)
+        time = normalize(int(s_time),0,49978)
         time = convert_tensor([time])
         
-        field_path = pathlib.Path(self.data_path,f'y{s_burst}{s_asteriod}{s_angle}',f'{s_z}_{s_time}.bin')
-        field = self.data_preproccess(field_path)
-        field = convert_tensor(field)
+        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_asteriod}{s_angle}',f'{s_time}.png')
+        image = self.data_preproccess(image_path)
+        image = convert_tensor(image)
 
-        params = {'burst':burst,'angle':angle,'z':z,'time':time}
+        params = {'burst':burst,'asteriod':asteriod,'angle':angle,'time':time}
 
-        sample = {'in': params,'out':field}
+        sample = {'in': params,'out':image}
 
         return sample
 
@@ -88,8 +85,8 @@ class DeepWaterDataset(Dataset):
         self.size = len(self.label_list)
 
     def data_preproccess(self, data_path):
-        raw_data = np.fromfile(data_path, dtype='float32')
-        raw_data = normalize(raw_data,-2.239696925053734e-07,7.96058750165821)
-        raw_data = raw_data.reshape(1, 256, 256)
+        raw_data = io.imread(data_path).astype('float32')
+        raw_data = normalize(raw_data,0,255)
+        raw_data = raw_data[:,:,0:3].transpose((2,0,1))
 
         return raw_data

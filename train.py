@@ -5,9 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torchvision.utils import save_image
 
 from model.insitu import Generator
 from model.insitu import Discriminator
+from model.vgg19 import VGG19
 
 from data.deep_water import DeepWaterDataset
 from pathlib import Path
@@ -67,8 +69,17 @@ def main(args):
         d_model = nn.DataParallel(d_model)
     d_model.to(device)
 
+    if args.perc_loss != None:
+        norm_mean = torch.tensor([.485, .456, .406]).view(-1, 1, 1).to(device)
+        norm_std = torch.tensor([.229, .224, .225]).view(-1, 1, 1).to(device)
+        vgg = VGG19(args.perc_loss).eval()
+        if args.data_parallel and torch.cuda.device_count() > 1:
+            vgg = nn.DataParallel(vgg)
+        vgg.to(device)
+
     train_losses, test_losses = [], []
     d_losses, g_losses = [], []
+    mse_criterion = nn.MSELoss()
 
     g_optimizer = optim.Adam(g_model.parameters(), lr=args.lr,
                            betas=(args.beta1, args.beta2))
@@ -99,20 +110,20 @@ def main(args):
         train_loss = 0.
         
         for i, sample in enumerate(train_loader):
-            field = sample["out"].to(device)
+            images = sample["out"].to(device)
             
             sparams = torch.cat(list(sample['in'].values()),1).to(device)
 
             g_optimizer.zero_grad()
-            fake_field = g_model(sparams)
+            fake_images = g_model(sparams)
 
             # update discriminator
             d_optimizer.zero_grad()
             
-            decision = d_model(sparams,field)
+            decision = d_model(sparams,images)
             d_loss_real = torch.mean(F.relu(1. - decision))
 
-            fake_decision = d_model(sparams, fake_field.detach())
+            fake_decision = d_model(sparams, fake_images.detach())
             d_loss_fake = torch.mean(F.relu(1. + fake_decision))
 
             d_loss = d_loss_real + d_loss_fake
@@ -123,10 +134,19 @@ def main(args):
             # update generator
             loss = 0.
             g_optimizer.zero_grad()
-            fake_decision = d_model(sparams, fake_field)
 
-            g_loss = -torch.mean(fake_decision)
-            loss += g_loss
+            fake_decision = d_model(sparams, fake_images)
+            g_loss = - args.adv_loss_weight * torch.mean(fake_decision)
+            
+            if args.perc_loss:
+                images = ( (images +1.) * .5 - norm_mean) / norm_std
+                fake_images = ( (fake_images +1. )*.5 - norm_mean) / norm_std
+
+                features = vgg(images)
+                fake_features = vgg(fake_images)
+                perc_loss = mse_criterion(features,fake_features)
+            
+            loss += perc_loss + g_loss
             
             loss.backward()
             g_optimizer.step()
@@ -147,15 +167,21 @@ def main(args):
         g_model.eval()
         d_model.eval()
         
-        mse_criterion = nn.MSELoss()
         test_loss = 0.
         with torch.no_grad():
             for i, sample in enumerate(test_loader):
-                field = sample["out"].to(device)
+                images = sample["out"].to(device)
                 sparams = torch.cat(list(sample['in'].values()),1).to(device)
 
-                fake_field = g_model(sparams)
-                test_loss += mse_criterion(field, fake_field).item() * len(sparams)
+                fake_images = g_model(sparams)
+                test_loss += mse_criterion(images, fake_images).item() * len(sparams)
+
+                if i == 0 and epoch % args.check_every == 0:
+                    n = min(len(sparams), 8)
+                    comparison = torch.cat(
+                        [images[:n], fake_images.view(len(sparams), 3, 256, 256)[:n]])
+                    save_image(((comparison.cpu() + 1.) * .5),
+                                Path(args.storage,f'{epoch}.png'), nrow=n)
 
         test_losses.append(test_loss / len(test_loader.dataset))
         print(f"====> Epoch: {epoch} Test set loss: {test_losses[-1]:.6f}")

@@ -23,7 +23,7 @@ class Generator(nn.Module):
             GenResBlock(ch * 2,ch),
             nn.BatchNorm2d(ch),
             nn.ReLU(),
-            nn.Conv2d(ch,1,3,1,1),
+            nn.Conv2d(ch,3,3,1,1),
             nn.Tanh()
         )
 
@@ -47,7 +47,7 @@ class Discriminator(nn.Module):
         )
 
         self.blocks = nn.Sequential(
-            OptimDisResBlock(1,ch),
+            OptimDisResBlock(3,ch),
             DisResBlock(ch,ch*2),
             DisResBlock(ch*2,ch*4),
             DisResBlock(ch*4,ch*8),

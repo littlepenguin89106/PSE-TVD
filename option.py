@@ -21,6 +21,11 @@ def add_train_args(parser):
                         help="beta1 of Adam")
     parser.add_argument("--beta2", type=float, default=0.999,
                         help="beta2 of Adam")
+    
+    parser.add_argument("--adv-loss-weight", type=float, default=0.01,
+                        help="weight of adv_loss")
+    parser.add_argument("--perc-loss", type=str, default='relu1_2',
+                        help="the layer perc_loss use")
 
     parser.add_argument("--batch-size", type=int, default=32,
                         help="batch size for training")
