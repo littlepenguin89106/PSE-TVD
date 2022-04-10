@@ -1,31 +1,30 @@
 import torch.nn as nn
-import torch.nn.functional as F 
+import torch.nn.functional as F
+from .self_mod import SelfModBatchNorm
 
 class GenResBlock(nn.Module):
-    def __init__(self,in_chs,out_chs):
+    def __init__(self,in_chs,out_chs,hidden_chs):
         super(GenResBlock,self).__init__()
 
         self.res_conv = nn.Conv2d(in_chs,out_chs,1,1,0,bias=False)
-        self.main0 = nn.Sequential(
-            nn.BatchNorm2d(in_chs),
-            nn.ReLU(),
-        )
+        self.smbn0 = SelfModBatchNorm(512,in_chs,hidden_chs)
+        self.conv0 = nn.Conv2d(in_chs,out_chs,3,1,1,bias=False)
+        self.smbn1 = SelfModBatchNorm(512,out_chs,hidden_chs)
+        self.conv1 = nn.Conv2d(out_chs,out_chs,3,1,1,bias=False)
 
-        self.main1 = nn.Sequential(
-            nn.Conv2d(in_chs,out_chs,3,1,1,bias=False),
-            nn.BatchNorm2d(out_chs),
-            nn.ReLU(),
-            nn.Conv2d(out_chs,out_chs,3,1,1,bias=False)
-        )
-
-    def forward(self, x):
+    def forward(self, x,z):
         r = x
         r = F.interpolate(r,scale_factor=2)
         r = self.res_conv(r)
 
-        out = self.main0(x)
+        out = self.smbn0(x,z)
+        out = F.relu(out)
         out = F.interpolate(out,scale_factor=2)
-        out = self.main1(out)
+        out = self.conv0(out)
+
+        out = self.smbn1(out,z)
+        out = F.relu(out)
+        out = self.conv1(out)
 
         return out + r
 
