@@ -49,8 +49,12 @@ def basic_parser():
                         help="path to the latest checkpoint")
     parser.add_argument("--dsp", type=int, default=2,
                         help="dimensions of the simulation parameters")
+    parser.add_argument("--dvp", type=int, default=2,
+                        help="dimensions of the simulation parameters")
     parser.add_argument("--dspe", type=int, default=512,
                         help="dimensions of the simulation parameters' encode")
+    parser.add_argument("--dvpe", type=int, default=512,
+                    help="dimensions of the simulation parameters' encode")
     parser.add_argument("--ch", type=int, default=32,
                         help="channel multiplier")
 

@@ -3,7 +3,7 @@ import torch.nn as nn
 from .resblock import GenResBlock,DisResBlock,OptimDisResBlock
 
 class Generator(nn.Module):
-    def __init__(self,dsp,dspe,ch):
+    def __init__(self,dsp,dspe,dvp,dvpe,ch):
         super(Generator,self).__init__()
         self.dsp,self.dspe = dsp,dspe
         self.ch = ch
@@ -11,8 +11,14 @@ class Generator(nn.Module):
         self.sp_sub = nn.Sequential(
             nn.Linear(dsp,dspe),nn.ReLU(),
             nn.Linear(dspe,dspe),nn.ReLU(),
-            nn.Linear(dspe,ch * 16 * 4 * 4)
         )
+
+        self.vp_sub = nn.Sequential(
+            nn.Linear(dvp,dvpe),nn.ReLU(),
+            nn.Linear(dvpe,dvpe),nn.ReLU(),
+        )
+
+        self.mp_sub = nn.Linear(dspe+dvpe, ch * 16 * 4 * 4, bias=False)
 
         self.blocks = nn.Sequential(
             GenResBlock(ch * 16,ch * 16),
@@ -27,15 +33,20 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self,sp):
+    def forward(self,sp,vp):
         sp = self.sp_sub(sp)
-        sp = sp.view(sp.size(0),self.ch * 16,4,4)
-        out = self.blocks(sp)
+        vp = self.vp_sub(vp)
+
+        mp = torch.cat((sp,vp),1)
+        mp = self.mp_sub(mp)
+        mp = mp.view(mp.size(0),self.ch * 16,4,4)
+
+        out = self.blocks(mp)
 
         return out
 
 class Discriminator(nn.Module):
-    def __init__(self,dsp,dspe,ch):
+    def __init__(self,dsp,dspe,dvp,dvpe,ch):
         super(Discriminator,self).__init__()
         self.dsp,self.dspe = dsp,dspe
         self.ch = ch
@@ -43,8 +54,14 @@ class Discriminator(nn.Module):
         self.sp_sub = nn.Sequential(
             nn.Linear(dsp,dspe),nn.ReLU(),
             nn.Linear(dspe,dspe),nn.ReLU(),
-            nn.Linear(dspe,ch * 16)
         )
+
+        self.vp_sub = nn.Sequential(
+            nn.Linear(dvp,dvpe),nn.ReLU(),
+            nn.Linear(dvpe,dvpe),nn.ReLU(),
+        )
+
+        self.mp_sub = nn.Linear(dspe + dvpe,16 * ch)
 
         self.blocks = nn.Sequential(
             OptimDisResBlock(3,ch),
@@ -59,13 +76,18 @@ class Discriminator(nn.Module):
 
         self.out_sub = nn.Linear(ch*16,1)
     
-    def forward(self,sp,sf):
+    def forward(self,sp,vp,x):
         sp = self.sp_sub(sp)
 
-        sf = self.blocks(sf)
-        sf = torch.sum(sf,(2,3))
+        vp = self.vp_sub(vp)
 
-        out = self.out_sub(sf)
-        out += torch.sum(sp * sf,1,keepdim=True)
+        mp = torch.cat((sp,vp),1)
+        mp = self.mp_sub(mp)
+
+        x = self.blocks(x)
+        x = torch.sum(x,(2,3))
+
+        out = self.out_sub(x)
+        out += torch.sum(mp * x,1,keepdim=True)
 
         return out        

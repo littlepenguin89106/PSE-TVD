@@ -6,7 +6,7 @@ from .normalize import normalize
 import pandas as pd
 import torch
 
-def transfer_airburst(s):
+def convert_airburst(s):
     if s == "A":
         return 0
     elif s == "B":
@@ -16,7 +16,7 @@ def transfer_airburst(s):
     elif s == "D":
         return 15
 
-def transfer_asteriod(s):
+def convert_diameter(s):
     if s=="1":
         return 100
     elif s=="3":
@@ -24,7 +24,7 @@ def transfer_asteriod(s):
     elif s=="5":
         return 500
 
-def transfer_angle(s):
+def convert_angle(s):
     if s=="0":
         return 27.4
     elif s=="1":
@@ -32,7 +32,15 @@ def transfer_angle(s):
     elif s=="2":
         return 60
 
-def convert_tensor(arr):
+def convert_theta(s):
+    theta = float(s)
+    return np.cos(np.deg2rad(theta)),np.sin(np.deg2rad(theta))
+
+def convert_phi(s):
+    phi = float(s)
+    return phi / 90
+
+def to_tensor(arr):
     if not isinstance(arr,np.ndarray):
         arr = np.array(arr,dtype="float32")
     return torch.from_numpy(arr)
@@ -48,31 +56,34 @@ class DeepWaterDataset(Dataset):
         index = index % self.size
         
         s_burst = self.label_list.iloc[index]['burst']
-        burst = transfer_airburst(s_burst)
+        burst = convert_airburst(s_burst)
         burst = normalize(burst,0,15)
-        burst = convert_tensor([burst])
 
-        s_asteriod = self.label_list.iloc[index]['asteriod']
-        asteriod = transfer_asteriod(s_asteriod)
-        asteriod = normalize(asteriod,100,500)
-        asteriod = convert_tensor([asteriod])
+        s_diameter = self.label_list.iloc[index]['diameter']
+        diameter = convert_diameter(s_diameter)
+        diameter = normalize(diameter,100,500)
         
         s_angle = self.label_list.iloc[index]['angle']
-        angle = transfer_angle(s_angle)
+        angle = convert_angle(s_angle)
         angle = normalize(angle,27.4,60)
-        angle = convert_tensor([angle])
         
         s_time = self.label_list.iloc[index]['time']
         time = normalize(int(s_time),0,49978)
-        time = convert_tensor([time])
+
+        sparams = to_tensor([burst,diameter,angle,time])
+
+        s_theta = self.label_list.iloc[index]['theta']
+        theta = convert_theta(s_theta)
+        s_phi = self.label_list.iloc[index]['phi']
+        phi = convert_phi(s_phi)
+
+        vparams = to_tensor([*theta,phi])
         
-        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_asteriod}{s_angle}',f'{s_time}.png')
+        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_diameter}{s_angle}',f'y{s_burst}{s_diameter}{s_angle}_{s_time}_{s_theta}_{s_phi}.png')
         image = self.data_preproccess(image_path)
-        image = convert_tensor(image)
+        image = to_tensor(image)
 
-        params = {'burst':burst,'asteriod':asteriod,'angle':angle,'time':time}
-
-        sample = {'in': params,'out':image}
+        sample = {'sparams':sparams,'vparams':vparams,'img':image}
 
         return sample
 

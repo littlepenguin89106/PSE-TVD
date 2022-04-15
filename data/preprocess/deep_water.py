@@ -28,15 +28,16 @@ def split_dataset(select_file, ratio):
     train_list = []
 
     for i in images:
-        i_parts = Path(i.strip()).parts
-        m_params = i_parts[-2]
-        i_params = i_parts[-1].split('_')
+        fname_parts = Path(i.strip()).stem.split('_')
+        mparams = fname_parts[0]
 
         param_dict = {
-            'burst': m_params[1],
-            'asteriod': m_params[2],
-            'angle': m_params[3],
-            'time': i_params[0].rstrip('.png')
+            'burst': mparams[1],
+            'diameter': mparams[2],
+            'angle': mparams[3],
+            'time': fname_parts[1],
+            'theta': fname_parts[2],
+            'phi': fname_parts[3]
         }
 
         if count % sample_range == 0:
@@ -48,6 +49,10 @@ def split_dataset(select_file, ratio):
             
     write_list(test_list,"test.pkl")
     write_list(train_list,"train.pkl")
+
+def test_dataframe(path):
+    df = pd.read_pickle(path)
+    print(df)
 
 if __name__ == "__main__":
     fire.Fire()
