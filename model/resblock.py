@@ -3,13 +3,13 @@ import torch.nn.functional as F
 from .self_mod import SelfModBatchNorm
 
 class GenResBlock(nn.Module):
-    def __init__(self,in_chs,out_chs,hidden_chs):
+    def __init__(self,in_chs,out_chs,ze,hidden_chs):
         super(GenResBlock,self).__init__()
 
         self.res_conv = nn.Conv2d(in_chs,out_chs,1,1,0,bias=False)
-        self.smbn0 = SelfModBatchNorm(512,in_chs,hidden_chs)
+        self.smbn0 = SelfModBatchNorm(ze,in_chs,hidden_chs)
         self.conv0 = nn.Conv2d(in_chs,out_chs,3,1,1,bias=False)
-        self.smbn1 = SelfModBatchNorm(512,out_chs,hidden_chs)
+        self.smbn1 = SelfModBatchNorm(ze,out_chs,hidden_chs)
         self.conv1 = nn.Conv2d(out_chs,out_chs,3,1,1,bias=False)
 
     def forward(self, x,z):

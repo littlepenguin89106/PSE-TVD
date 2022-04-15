@@ -56,13 +56,13 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                             shuffle=True,drop_last=True, **kwargs)
 
-    g_model = Generator(dsp=args.dsp,dspe=args.dspe,ch=args.ch,hidden_nums=args.hidden_nums)
+    g_model = Generator(dsp=args.dsp,dspe=args.dspe,dvp=args.dvp,dvpe=args.dvpe,ch=args.ch,hidden_nums=args.hidden_nums)
     g_model.apply(weights_init)
     if args.data_parallel and torch.cuda.device_count() > 1:
         g_model = nn.DataParallel(g_model)
     g_model.to(device)
 
-    d_model = Discriminator(dsp=args.dsp,dspe=args.dspe,ch=args.ch)
+    d_model = Discriminator(dsp=args.dsp,dspe=args.dspe,dvp=args.dvp,dvpe=args.dvpe,ch=args.ch)
     d_model.apply(weights_init)
     d_model = add_sn(d_model)
     if args.data_parallel and torch.cuda.device_count() > 1:
@@ -110,20 +110,21 @@ def main(args):
         train_loss = 0.
         
         for i, sample in enumerate(train_loader):
-            images = sample["out"].to(device)
+            images = sample['img'].to(device)
             
-            sparams = torch.cat(list(sample['in'].values()),1).to(device)
+            sparams = sample['sparams'].to(device)
+            vparams = sample['vparams'].to(device)
 
             g_optimizer.zero_grad()
-            fake_images = g_model(sparams)
+            fake_images = g_model(sparams,vparams)
 
             # update discriminator
             d_optimizer.zero_grad()
             
-            decision = d_model(sparams,images)
+            decision = d_model(sparams,vparams,images)
             d_loss_real = torch.mean(F.relu(1. - decision))
 
-            fake_decision = d_model(sparams, fake_images.detach())
+            fake_decision = d_model(sparams,vparams, fake_images.detach())
             d_loss_fake = torch.mean(F.relu(1. + fake_decision))
 
             d_loss = d_loss_real + d_loss_fake
@@ -135,7 +136,7 @@ def main(args):
             loss = 0.
             g_optimizer.zero_grad()
 
-            fake_decision = d_model(sparams, fake_images)
+            fake_decision = d_model(sparams,vparams, fake_images)
             g_loss = - args.adv_loss_weight * torch.mean(fake_decision)
             
             if args.perc_loss:
@@ -170,10 +171,11 @@ def main(args):
         test_loss = 0.
         with torch.no_grad():
             for i, sample in enumerate(test_loader):
-                images = sample["out"].to(device)
-                sparams = torch.cat(list(sample['in'].values()),1).to(device)
+                images = sample['img'].to(device)
+                sparams = sample['sparams'].to(device)
+                vparams = sample['vparams'].to(device)
 
-                fake_images = g_model(sparams)
+                fake_images = g_model(sparams,vparams)
                 test_loss += mse_criterion(images, fake_images).item() * len(sparams)
 
                 if i == 0 and epoch % args.check_every == 0:
