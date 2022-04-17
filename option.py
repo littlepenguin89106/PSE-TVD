@@ -9,7 +9,7 @@ def add_train_args(parser):
                         help="enable data parallelism")
     parser.add_argument("--seed", type=int, default=1,
                         help="random seed")
-    parser.add_argument("--num_workers", type=int, default=4,
+    parser.add_argument("--num-workers", type=int, default=4,
                         help="random seed")
 
     parser.add_argument("--data", required=True, type=str,
@@ -28,8 +28,6 @@ def add_train_args(parser):
                         help="weight of adv_loss")
     parser.add_argument("--perc-loss", type=str, default='relu1_2',
                         help="the layer perc_loss use")
-    parser.add_argument("--hidden_nums", type=int, default=256,
-                        help="number of hidden node in self mod")
 
     parser.add_argument("--batch-size", type=int, default=32,
                         help="batch size for training")
@@ -61,5 +59,7 @@ def basic_parser():
                     help="dimensions of the simulation parameters' encode")
     parser.add_argument("--ch", type=int, default=32,
                         help="channel multiplier")
+    parser.add_argument("--hidden-nums", type=int, default=256,
+                    help="number of hidden node in self mod")
 
     return parser

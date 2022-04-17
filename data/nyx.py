@@ -37,29 +37,29 @@ class NyxDataset(Dataset):
     def __getitem__(self, index):
         index = index % self.size
         
-        s_OmM = self.label_list[index]['OmM']
+        s_OmM = self.label_list.iloc[index]['OmM']
         OmM = convert_sparam(s_OmM,0.21554,0.27766)
 
-        s_OmB = self.label_list[index]['OmB']
+        s_OmB = self.label_list.iloc[index]['OmB']
         OmB = convert_sparam(s_OmB,0.04523,0.04571)
 
-        s_h = self.label_list[index]['h']
+        s_h = self.label_list.iloc[index]['h']
         h = convert_sparam(s_h,0.61384,0.82706)
 
-        s_time = self.label_list[index]['time']
+        s_time = self.label_list.iloc[index]['time']
         time = convert_sparam(s_time,0,200)
 
-        s_theta = self.label_list[index]['theta']
+        s_theta = self.label_list.iloc[index]['theta']
         theta = convert_theta(s_theta)
         
-        s_phi = self.label_list[index]['phi']
-        phi = convert_theta(s_phi)
+        s_phi = self.label_list.iloc[index]['phi']
+        phi = convert_phi(s_phi)
 
-        sparams = [OmM,OmB,h,time]
+        sparams = to_tensor([OmM,OmB,h,time])
 
         vparams = to_tensor([*theta,phi])
         
-        image_path = pathlib.Path(self.data_path,f'y{s_OmM}_{s_OmB}_{s_h}',f'y{s_time}_{s_theta}_{s_phi}.png')
+        image_path = pathlib.Path(self.data_path,f'{s_OmM}_{s_OmB}_{s_h}',f'{s_time}_{s_theta}_{s_phi}.png')
         image = self.data_preproccess(image_path)
         image = to_tensor(image)
 

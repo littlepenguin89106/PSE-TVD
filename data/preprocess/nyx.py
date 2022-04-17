@@ -32,9 +32,9 @@ def split_dataset(select_file, ratio):
         mparams = img_path.parts[-2].split('_')
 
         param_dict = {
-            'OmM': mparams[1],
-            'OmB': mparams[2],
-            'h': mparams[3],
+            'OmM': mparams[0],
+            'OmB': mparams[1],
+            'h': mparams[2],
             'time': fname_parts[0],
             'theta': fname_parts[1],
             'phi': fname_parts[2]
