@@ -6,32 +6,6 @@ from .normalize import normalize
 import pandas as pd
 import torch
 
-def convert_airburst(s):
-    if s == "A":
-        return 0
-    elif s == "B":
-        return 5
-    elif s == "C":
-        return 10
-    elif s == "D":
-        return 15
-
-def convert_diameter(s):
-    if s=="1":
-        return 100
-    elif s=="3":
-        return 250
-    elif s=="5":
-        return 500
-
-def convert_angle(s):
-    if s=="0":
-        return 27.4
-    elif s=="1":
-        return 45
-    elif s=="2":
-        return 60
-
 def convert_theta(s):
     theta = float(s)
     return np.cos(np.deg2rad(theta)),np.sin(np.deg2rad(theta))
@@ -40,46 +14,52 @@ def convert_phi(s):
     phi = float(s)
     return phi / 90
 
+def convert_sparam(s,d_min,d_max):
+    val = float(s)
+    return normalize(val,d_min,d_max)
+
 def to_tensor(arr):
     if not isinstance(arr,np.ndarray):
         arr = np.array(arr,dtype="float32")
     return torch.from_numpy(arr)
 
-class DeepWaterDataset(Dataset):
+class NyxDataset(Dataset):
 
     def __init__(self,data_path, filename):
         self.size = 0
         self.data_path = data_path
         self.read_file(filename)
 
+    def convert_sparam(self,s,d_min,d_max):
+        val = float(s)
+        return normalize(val,d_min,d_max)
+
     def __getitem__(self, index):
         index = index % self.size
         
-        s_burst = self.label_list.iloc[index]['burst']
-        burst = convert_airburst(s_burst)
-        burst = normalize(burst,0,15)
+        s_OmM = self.label_list[index]['OmM']
+        OmM = convert_sparam(s_OmM,0.21554,0.27766)
 
-        s_diameter = self.label_list.iloc[index]['diameter']
-        diameter = convert_diameter(s_diameter)
-        diameter = normalize(diameter,100,500)
-        
-        s_angle = self.label_list.iloc[index]['angle']
-        angle = convert_angle(s_angle)
-        angle = normalize(angle,27.4,60)
-        
-        s_time = self.label_list.iloc[index]['time']
-        time = normalize(int(s_time),0,49978)
+        s_OmB = self.label_list[index]['OmB']
+        OmB = convert_sparam(s_OmB,0.04523,0.04571)
 
-        sparams = to_tensor([burst,diameter,angle,time])
+        s_h = self.label_list[index]['h']
+        h = convert_sparam(s_h,0.61384,0.82706)
 
-        s_theta = self.label_list.iloc[index]['theta']
+        s_time = self.label_list[index]['time']
+        time = convert_sparam(s_time,0,200)
+
+        s_theta = self.label_list[index]['theta']
         theta = convert_theta(s_theta)
-        s_phi = self.label_list.iloc[index]['phi']
-        phi = convert_phi(s_phi)
+        
+        s_phi = self.label_list[index]['phi']
+        phi = convert_theta(s_phi)
+
+        sparams = [OmM,OmB,h,time]
 
         vparams = to_tensor([*theta,phi])
         
-        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_diameter}{s_angle}',f'y{s_burst}{s_diameter}{s_angle}_{s_time}_{s_theta}_{s_phi}.png')
+        image_path = pathlib.Path(self.data_path,f'y{s_OmM}_{s_OmB}_{s_h}',f'y{s_time}_{s_theta}_{s_phi}.png')
         image = self.data_preproccess(image_path)
         image = to_tensor(image)
 

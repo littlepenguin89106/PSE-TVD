@@ -11,7 +11,7 @@ from model.insitu import Generator
 from model.insitu import Discriminator
 from model.vgg19 import VGG19
 
-from data.deep_water import DeepWaterDataset
+from data.nyx import NyxDataset
 from pathlib import Path
 from option import basic_parser,add_train_args
 import numpy as np
@@ -46,11 +46,11 @@ def main(args):
     torch.manual_seed(args.seed)
 
     # data loader
-    train_dataset = DeepWaterDataset(args.data,'train.pkl')
+    train_dataset = NyxDataset(args.data,'train.pkl')
 
-    test_dataset = DeepWaterDataset(args.data,'test.pkl')
+    test_dataset = NyxDataset(args.data,'test.pkl')
 
-    kwargs = {"num_workers": 2, "pin_memory": True} if args.cuda else {}
+    kwargs = {"num_workers": args.num_workers, "pin_memory": True} if args.cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True,drop_last=True, **kwargs)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
