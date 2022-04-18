@@ -115,7 +115,7 @@ def gen_imgs(check_filename,dataset_dirname,out_dir):
     dataset = DeepWaterDataset(dataset_dirname,'test.pkl')
     test_dataloader = DataLoader(dataset,batch_size=64,num_workers=6,pin_memory=True,collate_fn=collate_fn)
 
-    g_model = Generator(4,512,3,512,32,128)
+    g_model = Generator(4,512,3,512,32)
     g_model.load_state_dict(checkpoint['g_model_state_dict'])
     g_model.to(device)
     g_model.eval()
