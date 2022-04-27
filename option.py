@@ -26,7 +26,7 @@ def add_train_args(parser):
                         help="weight of adv_loss")
     parser.add_argument("--perc-loss", type=str, default='relu1_2',
                         help="the layer perc_loss use")
-    parser.add_argument("--hidden_nums", type=int, default=256,
+    parser.add_argument("--hidden-nums", type=int, default=256,
                         help="number of hidden node in self mod")
 
     parser.add_argument("--batch-size", type=int, default=32,
