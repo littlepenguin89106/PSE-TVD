@@ -20,8 +20,9 @@ def compute_metric(truth_dir,gen_dir):
 
         count +=1
 
-    print(psnr/count)
-    print(ssim/count)
+    with open('metric.txt','w') as f:
+        f.write(f'psnr: {psnr/count}\n')
+        f.write(f'ssim {ssim/count}')
 
 if __name__ == "__main__":
     fire.Fire()
