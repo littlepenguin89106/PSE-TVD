@@ -40,6 +40,8 @@ def add_train_args(parser):
                         help="log training status every given number of batches")
     parser.add_argument("--check-every", type=int, default= 50,
                         help="save checkpoint every given number of epochs")
+    parser.add_argument("--metric", type=bool, default=False,
+                        help="generate images and compute metric after training")
     return parser
 
 def basic_parser():
