@@ -16,6 +16,8 @@ from pathlib import Path
 from option import basic_parser,add_train_args
 import numpy as np
 
+from eval.metric import compute_metric
+
 def weights_init(m):
     if isinstance(m, nn.Linear):
         nn.init.orthogonal_(m.weight)
@@ -202,7 +204,43 @@ def main(args):
                         "test_losses": test_losses},
                         Path(args.storage,f'model_{epoch}_{train_losses[-1]:.6f}_{test_losses[-1]:.6f}.pth.tar'))
 
+    if args.metric:
+        truth_path = Path(args.storage,'truth_imgs')
+        gen_path = Path(args.storage,'gen_imgs')
+        truth_path.mkdir(exist_ok=True)
+        gen_path.mkdir(exist_ok=True)
+
+        with torch.no_grad():
+            for sample in test_loader:
+                images = ((sample['img'] + 1.) * .5).cpu()
+
+                sparams = sample['sparams'].to(device)
+                vparams = sample['vparams'].to(device)
+
+                fake_images = ((g_model(sparams,vparams) + 1.) * .5).cpu()
+
+                sparams = sparams.tolist()
+                vparams = vparams.tolist()
+                
+                str_fn = lambda x: f'{x:.6f}'
+                
+                for i in range(len(sample)):
+                    i_truth = images[i]
+                    i_fake = fake_images[i]
+
+                    i_sp = sparams[i]
+                    i_vp = vparams[i]
+
+                    img_name = f'{"_".join(map(str_fn,i_sp))}_{"_".join(map(str_fn,i_vp))}.png'
+                    save_image(i_truth,truth_path / img_name)
+                    save_image(i_fake,gen_path / img_name)
+
+
 if __name__ == "__main__":
     parser = basic_parser()
     parser = add_train_args(parser)
-    main(parser.parse_args())
+    args = parser.parse_args()
+    main(args)
+
+    if args.metric:
+        compute_metric(args)

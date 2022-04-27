@@ -1,28 +1,68 @@
-from skimage import io,metrics
+from skimage import color
+import numpy as np
+import pyemd
+from sklearn.metrics.pairwise import euclidean_distances
 from pathlib import Path
-import fire
+import torch
+from skimage.metrics import peak_signal_noise_ratio,structural_similarity
+from pytorch_fid.fid_score import calculate_fid_given_paths
+from sklearn import io
 
-def compute_metric(truth_dir,gen_dir):
-    truth_dir = Path(truth_dir)
-    gen_dir = Path(gen_dir)
+def compute_emd(im1, im2, cost_mat, l_bins=8,a_bins=12,b_bins=12):
+    lab_im1 = color.rgb2lab(im1)
+    lab_im1 = lab_im1.reshape((lab_im1.shape[0]*lab_im1.shape[1],lab_im1.shape[2]))
+    lab_hist_1,_ = np.histogramdd(lab_im1, bins=(l_bins,a_bins,b_bins), range=[[0.0,100.0], [-86.185,98.254], [-107.863,94.482]], normed=False)
+
+    lab_im2 = color.rgb2lab(im2)
+    lab_im2 = lab_im2.reshape((lab_im2.shape[0]*lab_im2.shape[1],lab_im2.shape[2]))
+    lab_hist_2,_ = np.histogramdd(lab_im2, bins=(l_bins,a_bins,b_bins), range=[[0.0,100.0], [-86.185,98.254], [-107.863,94.482]], normed=False)
+
+    n_bins = l_bins*a_bins*b_bins
+    lab_hist_1 = lab_hist_1.reshape((n_bins))
+    lab_hist_2 = lab_hist_2.reshape((n_bins))
+    img_res = lab_im1.shape[0]
+    lab_hist_1 /= img_res
+    lab_hist_2 /= img_res
+    return pyemd.emd(lab_hist_1,lab_hist_2,cost_mat)
+
+def compute_emd_cost_mat(l_bins=8,a_bins=12,b_bins=12):
+    n_bins = l_bins*a_bins*b_bins
+    index_mat = np.zeros((l_bins,a_bins,b_bins,3))
+    for idx in range(l_bins):
+        for jdx in range(a_bins):
+            for kdx in range(b_bins):
+                index_mat[idx,jdx,kdx] = np.array([idx,jdx,kdx])
+    index_mat = index_mat.reshape(n_bins,3)
+    all_dists = euclidean_distances(index_mat,index_mat)
+    return all_dists / np.max(all_dists)
+
+def compute_metric(args):
+    storage = Path(args.storage)
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    truth_path = storage / 'truth_imgs'
+    gen_path = storage / 'gen_imgs'
 
     psnr = 0.
     ssim = 0.
+    emd = 0.
     count = 0
-    for truth_img_path in truth_dir.iterdir():
-        img_name = truth_img_path.name
-        gen_img_path = gen_dir / img_name
+    emd_cost_mat = compute_emd_cost_mat()
+    
 
-        truth_img = io.imread(truth_img_path)
-        gen_img = io.imread(gen_img_path)
-        psnr += metrics.peak_signal_noise_ratio(truth_img,gen_img)
-        ssim += metrics.structural_similarity(truth_img,gen_img,multichannel=True,data_range=255)
+    for p in truth_path.iterdir():
+        img_name = p.name
+        
+        image = io.imread(p)
+        fake_image = io.imread(gen_path/img_name)
+        psnr += peak_signal_noise_ratio(image,fake_image)
+        ssim += structural_similarity(image,fake_image,multichannel=True)
+        emd  += compute_emd(image,fake_image,emd_cost_mat)
+        count += 1
 
-        count +=1
-
-    with open('metric.txt','w') as f:
+    fid = calculate_fid_given_paths([truth_path.as_posix(),gen_path.as_posix()],args.batch_size,device,2048,args.num_workers)
+    
+    with open(Path(args.storage,'metric.txt'),'w') as f:
         f.write(f'psnr: {psnr/count}\n')
-        f.write(f'ssim {ssim/count}')
-
-if __name__ == "__main__":
-    fire.Fire()
+        f.write(f'ssim: {ssim/count}\n')
+        f.write(f'emd: {emd/count}\n')
+        f.write(f'fid: {fid}\n')
