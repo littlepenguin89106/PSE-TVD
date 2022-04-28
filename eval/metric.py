@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 from skimage.metrics import peak_signal_noise_ratio,structural_similarity
 from pytorch_fid.fid_score import calculate_fid_given_paths
-from sklearn import io
+from skimage import io
 
 def compute_emd(im1, im2, cost_mat, l_bins=8,a_bins=12,b_bins=12):
     lab_im1 = color.rgb2lab(im1)
