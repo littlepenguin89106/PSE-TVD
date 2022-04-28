@@ -179,7 +179,12 @@ def sample_render(select_list,min_max_list,attr,sample_num,out_dir):
                 
                 if not out_file_path.exists():
                     executor.submit(RenderImage,data_path, attr, min, max, angle[0],angle[1],out_file_path)
-
+    
+    with open(Path(out_dir,'total.txt'),'w') as f:
+        for m in sorted(Path(out_dir).iterdir()):
+            if m.is_dir():
+                for t in sorted(m.iterdir()):
+                    f.write(f'{t}\n')
 
 if __name__ == "__main__":
     fire.Fire()
