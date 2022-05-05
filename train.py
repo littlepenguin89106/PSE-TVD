@@ -224,7 +224,7 @@ def main(args):
                 
                 str_fn = lambda x: f'{x:.6f}'
                 
-                for i in range(len(sample)):
+                for i in range(len(sparams)):
                     i_truth = images[i]
                     i_fake = fake_images[i]
 

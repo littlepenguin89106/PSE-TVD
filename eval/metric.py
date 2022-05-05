@@ -7,6 +7,7 @@ import torch
 from skimage.metrics import peak_signal_noise_ratio,structural_similarity
 from pytorch_fid.fid_score import calculate_fid_given_paths
 from skimage import io
+import concurrent.futures as futures
 
 def compute_emd(im1, im2, cost_mat, l_bins=8,a_bins=12,b_bins=12):
     lab_im1 = color.rgb2lab(im1)
@@ -36,6 +37,11 @@ def compute_emd_cost_mat(l_bins=8,a_bins=12,b_bins=12):
     all_dists = euclidean_distances(index_mat,index_mat)
     return all_dists / np.max(all_dists)
 
+def compute_single_metric(predict,truth,emd_cost_mat):
+    return {'psnr': peak_signal_noise_ratio(predict,truth),
+            'ssim': structural_similarity(predict,truth),
+            'emd': compute_emd(predict,truth,emd_cost_mat)}
+
 def compute_metric(args):
     storage = Path(args.storage)
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -48,16 +54,22 @@ def compute_metric(args):
     count = 0
     emd_cost_mat = compute_emd_cost_mat()
     
+    with futures.ProcessPoolExecutor(args.num_workers) as executor:
+        metric_futures = []
 
-    for p in truth_path.iterdir():
-        img_name = p.name
-        
-        image = io.imread(p)
-        fake_image = io.imread(gen_path/img_name)
-        psnr += peak_signal_noise_ratio(image,fake_image)
-        ssim += structural_similarity(image,fake_image,multichannel=True)
-        emd  += compute_emd(image,fake_image,emd_cost_mat)
-        count += 1
+        for p in truth_path.iterdir():
+            img_name = p.name
+            image = io.imread(p)
+            fake_image = io.imread(gen_path/img_name)
+            future = executor.submit(compute_single_metric,fake_image,image,emd_cost_mat)
+            metric_futures.append(future)
+
+        for future in futures.as_completed(metric_futures):
+            metric_result = future.result()
+            psnr += metric_result['psnr']
+            ssim += metric_result['ssim']
+            emd += metric_result['emd']
+            count += 1
 
     fid = calculate_fid_given_paths([truth_path.as_posix(),gen_path.as_posix()],args.batch_size,device,2048,args.num_workers)
     
