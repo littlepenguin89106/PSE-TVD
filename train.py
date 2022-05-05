@@ -53,7 +53,7 @@ def main(args):
 
     test_dataset = DeepWaterDataset(args.data,'test.pkl')
 
-    kwargs = {"num_workers": 2, "pin_memory": True} if args.cuda else {}
+    kwargs = {"num_workers": args.num_workers, "pin_memory": True} if args.cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True,drop_last=True, **kwargs)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
