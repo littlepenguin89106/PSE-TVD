@@ -39,7 +39,7 @@ def compute_emd_cost_mat(l_bins=8,a_bins=12,b_bins=12):
 
 def compute_single_metric(predict,truth,emd_cost_mat):
     return {'psnr': peak_signal_noise_ratio(predict,truth),
-            'ssim': structural_similarity(predict,truth),
+            'ssim': structural_similarity(predict,truth,multichannel=True),
             'emd': compute_emd(predict,truth,emd_cost_mat)}
 
 def compute_metric(args):

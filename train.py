@@ -17,6 +17,7 @@ from option import basic_parser,add_train_args
 import numpy as np
 
 from eval.metric import compute_metric
+import concurrent.futures as furtures
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
@@ -91,7 +92,7 @@ def main(args):
     # load checkpoint
     if args.checkpoint and Path(args.checkpoint).is_file():
         print(f"=> loading checkpoint {args.checkpoint}")
-        checkpoint = torch.load(args.resume)
+        checkpoint = torch.load(args.checkpoint)
         args.start_epoch = checkpoint["epoch"]
 
         g_model.load_state_dict(checkpoint["g_model_state_dict"])
@@ -211,29 +212,30 @@ def main(args):
         gen_path.mkdir(exist_ok=True)
 
         with torch.no_grad():
-            for sample in test_loader:
-                images = ((sample['img'] + 1.) * .5).cpu()
+            with furtures.ThreadPoolExecutor() as executor:
+                for sample in test_loader:
+                    images = ((sample['img'] + 1.) * .5).cpu()
 
-                sparams = sample['sparams'].to(device)
-                vparams = sample['vparams'].to(device)
+                    sparams = sample['sparams'].to(device)
+                    vparams = sample['vparams'].to(device)
 
-                fake_images = ((g_model(sparams,vparams) + 1.) * .5).cpu()
+                    fake_images = ((g_model(sparams,vparams) + 1.) * .5).cpu()
 
-                sparams = sparams.tolist()
-                vparams = vparams.tolist()
-                
-                str_fn = lambda x: f'{x:.6f}'
-                
-                for i in range(len(sparams)):
-                    i_truth = images[i]
-                    i_fake = fake_images[i]
+                    sparams = sparams.tolist()
+                    vparams = vparams.tolist()
+                    
+                    str_fn = lambda x: f'{x:.6f}'
+                    
+                    for i in range(len(sparams)):
+                        i_truth = images[i]
+                        i_fake = fake_images[i]
 
-                    i_sp = sparams[i]
-                    i_vp = vparams[i]
+                        i_sp = sparams[i]
+                        i_vp = vparams[i]
 
-                    img_name = f'{"_".join(map(str_fn,i_sp))}_{"_".join(map(str_fn,i_vp))}.png'
-                    save_image(i_truth,truth_path / img_name)
-                    save_image(i_fake,gen_path / img_name)
+                        img_name = f'{"_".join(map(str_fn,i_sp))}_{"_".join(map(str_fn,i_vp))}.png'
+                        executor.submit(save_image(i_truth,truth_path / img_name))
+                        executor.submit(save_image(i_fake,gen_path / img_name))
 
 
 if __name__ == "__main__":
