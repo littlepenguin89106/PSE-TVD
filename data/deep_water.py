@@ -79,7 +79,7 @@ class DeepWaterDataset(Dataset):
 
         vparams = to_tensor([*theta,phi])
         
-        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_diameter}{s_angle}',f'y{s_burst}{s_diameter}{s_angle}_{s_time}_{s_theta}_{s_phi}.png')
+        image_path = pathlib.Path(self.data_path,f'y{s_burst}{s_diameter}{s_angle}',f'{s_time}_{s_theta}_{s_phi}.png')
         image = self.data_preproccess(image_path)
         image = to_tensor(image)
 
