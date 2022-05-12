@@ -11,8 +11,6 @@ def add_train_args(parser):
                         help="number of workers")
     parser.add_argument("--seed", type=int, default=1,
                         help="random seed")
-    parser.add_argument("--num-workers", type=int, default=4,
-                        help="random seed")
 
     parser.add_argument("--data", required=True, type=str,
                         help="root of the dataset")
