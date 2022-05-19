@@ -18,6 +18,8 @@ import numpy as np
 
 from eval.metric import compute_metric
 import concurrent.futures as furtures
+from datetime import timedelta
+import time
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
@@ -37,7 +39,7 @@ def add_sn(m):
     else:
         return m
 
-def main(args):
+def main(args,time_f):
     print(args)
 
     # select device
@@ -107,6 +109,7 @@ def main(args):
 
         print(f"=> loaded checkpoint {args.checkpoint} (epoch {checkpoint['epoch']})")
 
+    t_start = time.time()
     for epoch in tqdm(range(args.start_epoch, args.epochs)):
         g_model.train()
         d_model.train()
@@ -204,6 +207,21 @@ def main(args):
                         "train_losses": train_losses,
                         "test_losses": test_losses},
                         Path(args.storage,f'model_{epoch}_{train_losses[-1]:.6f}_{test_losses[-1]:.6f}.pth.tar'))
+    t_end = time.time()
+    # save g_model alone
+    torch.save(g_model.state_dict(),Path(args.storage,f'model_{epoch}_{train_losses[-1]:.6f}_{test_losses[-1]:.6f}.pth'))
+
+    # write training time
+    time_f.write(f'training time:{timedelta(seconds=t_end-t_start)}\n')
+
+    # write forward time
+    with torch.no_grad():
+        t_start = time.time()
+        g_model(sparams,vparams)
+        t_end = time.time()
+
+    time_f.write(f'forward time:{timedelta(seconds=t_end-t_start)}\n')
+
 
     if args.metric:
         truth_path = Path(args.storage,'truth_imgs')
@@ -242,7 +260,11 @@ if __name__ == "__main__":
     parser = basic_parser()
     parser = add_train_args(parser)
     args = parser.parse_args()
-    main(args)
+    p_storage = Path(args.stroage)
+    p_storage.mkdir(exist_ok=True)
+
+    with open(p_storage/'time.txt','w') as time_f:
+        main(args,time_f)
 
     if args.metric:
         compute_metric(args)
