@@ -260,7 +260,7 @@ if __name__ == "__main__":
     parser = basic_parser()
     parser = add_train_args(parser)
     args = parser.parse_args()
-    p_storage = Path(args.stroage)
+    p_storage = Path(args.storage)
     p_storage.mkdir(exist_ok=True)
 
     with open(p_storage/'time.txt','w') as time_f:
