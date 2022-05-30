@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 from .resblock import GenResBlock,DisResBlock,OptimDisResBlock
-from .self_mod import SelfModBatchNorm
+from .self_mod_layer import SelfModBatchNorm
 
-class Generator(nn.Module):
+class SelfModG(nn.Module):
     def __init__(self,dsp,dspe,dvp,dvpe,ch,hidden_nums):
-        super(Generator,self).__init__()
+        super(SelfModG,self).__init__()
         self.dsp,self.dspe = dsp,dspe
         self.ch = ch
 
@@ -54,9 +54,9 @@ class Generator(nn.Module):
 
         return out
 
-class Discriminator(nn.Module):
+class SelfModD(nn.Module):
     def __init__(self,dsp,dspe,dvp,dvpe,ch):
-        super(Discriminator,self).__init__()
+        super(SelfModD,self).__init__()
         self.dsp,self.dspe = dsp,dspe
         self.ch = ch
 

@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import pathlib
 import numpy as np
 from skimage import io
-from .normalize import normalize
+from ..normalize import normalize
 import pandas as pd
 import torch
 

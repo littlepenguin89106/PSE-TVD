@@ -7,11 +7,10 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
-from model.insitu import Generator
-from model.insitu import Discriminator
+from model import get_models
 from model.vgg19 import VGG19
 
-from data.nyx import NyxDataset
+from data import get_dataset
 from pathlib import Path
 from option import basic_parser,add_train_args
 import numpy as np
@@ -51,9 +50,9 @@ def main(args,time_f):
     torch.manual_seed(args.seed)
 
     # data loader
-    train_dataset = NyxDataset(args.data,'train.pkl')
+    train_dataset = get_dataset(args,'train.pkl')
 
-    test_dataset = NyxDataset(args.data,'test.pkl')
+    test_dataset = get_dataset(args,'test.pkl')
 
     kwargs = {"num_workers": args.num_workers, "pin_memory": True} if args.cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
@@ -61,13 +60,13 @@ def main(args,time_f):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                             shuffle=True,drop_last=True, **kwargs)
 
-    g_model = Generator(dsp=args.dsp,dspe=args.dspe,dvp=args.dvp,dvpe=args.dvpe,ch=args.ch,hidden_nums=args.hidden_nums)
+    g_model,d_model = get_models(args)
+
     g_model.apply(weights_init)
     if args.data_parallel and torch.cuda.device_count() > 1:
         g_model = nn.DataParallel(g_model)
     g_model.to(device)
 
-    d_model = Discriminator(dsp=args.dsp,dspe=args.dspe,dvp=args.dvp,dvpe=args.dvpe,ch=args.ch)
     d_model.apply(weights_init)
     d_model = add_sn(d_model)
     if args.data_parallel and torch.cuda.device_count() > 1:

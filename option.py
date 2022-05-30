@@ -12,6 +12,8 @@ def add_train_args(parser):
     parser.add_argument("--seed", type=int, default=1,
                         help="random seed")
 
+    parser.add_argument("--dataset", required=True, type=str,
+                        help="the dataset used to train model")
     parser.add_argument("--data", required=True, type=str,
                         help="root of the dataset")
 
@@ -51,6 +53,9 @@ def basic_parser():
                         help="path to config file")
     parser.add_argument("--checkpoint", type=str, default="",
                         help="path to the latest checkpoint")
+
+    parser.add_argument("--arch", required=True, type=str,
+                        help="the model arch")
     parser.add_argument("--dsp", type=int, default=2,
                         help="dimensions of the simulation parameters")
     parser.add_argument("--dvp", type=int, default=2,
@@ -61,7 +66,7 @@ def basic_parser():
                     help="dimensions of the simulation parameters' encode")
     parser.add_argument("--ch", type=int, default=32,
                         help="channel multiplier")
-    parser.add_argument("--hidden-nums", type=int, default=256,
+    parser.add_argument("--hidden-nums", type=int, default=None,
                     help="number of hidden node in self mod")
 
     return parser

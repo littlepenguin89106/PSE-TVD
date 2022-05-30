@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from .self_mod import SelfModBatchNorm
+from .self_mod_layer import SelfModBatchNorm
 
 class GenResBlock(nn.Module):
     def __init__(self,in_chs,out_chs,ze,hidden_chs):
