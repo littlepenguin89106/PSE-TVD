@@ -79,7 +79,7 @@ class SelfModD(nn.Module):
             DisResBlock(ch*4,ch*8),
             DisResBlock(ch*8,ch*8),
             DisResBlock(ch*8,ch*16),
-            DisResBlock(ch*16,ch*16),
+            DisResBlock(ch*16,ch*16,False),
             nn.ReLU()
         )
 

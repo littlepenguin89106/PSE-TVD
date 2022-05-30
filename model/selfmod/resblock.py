@@ -49,10 +49,14 @@ class OptimDisResBlock(nn.Module):
         return out + r
 
 class DisResBlock(nn.Module):
-    def __init__(self,in_chs,out_chs):
+    def __init__(self,in_chs,out_chs,downsample=True):
         super(DisResBlock,self).__init__()
 
-        self.res_conv = nn.Conv2d(in_chs,out_chs,1,1,0)
+        self.downsample = downsample
+        self.res_conv = None
+        if downsample or in_chs != out_chs:
+            self.res_conv = nn.Conv2d(in_chs,out_chs,1,1,0)
+
         self.main = nn.Sequential(
             nn.ReLU(),
             nn.Conv2d(in_chs,out_chs,3,1,1),
@@ -62,11 +66,14 @@ class DisResBlock(nn.Module):
 
     def forward(self,x):
         r = x
-        r = self.res_conv(r)
-        r = F.avg_pool2d(r,kernel_size = 2)
+        if self.res_conv is not None:
+            r = self.res_conv(r)
+        if self.downsample:
+            r = F.avg_pool2d(r,kernel_size = 2)
 
         out = self.main(x)
 
-        out = F.avg_pool2d(out, kernel_size =2)
+        if self.downsample:
+            out = F.avg_pool2d(out, kernel_size =2)
 
         return out + r
