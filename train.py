@@ -127,10 +127,16 @@ def main(args,time_f):
             d_optimizer.zero_grad()
             
             decision = d_model(sparams,vparams,images)
-            d_loss_real = torch.mean(F.relu(1. - decision))
+            if args.arch.upper() == "INSITU":
+                d_loss_real = torch.mean(F.softplus(-decision))
+            else:
+                d_loss_real = torch.mean(F.relu(1. - decision))
 
             fake_decision = d_model(sparams,vparams, fake_images.detach())
-            d_loss_fake = torch.mean(F.relu(1. + fake_decision))
+            if args.arch.upper() == "INSITU":
+                d_loss_fake = torch.mean(F.softplus(fake_decision))
+            else:
+                d_loss_fake = torch.mean(F.relu(1. + fake_decision))
 
             d_loss = d_loss_real + d_loss_fake
             d_loss.backward()
@@ -142,7 +148,10 @@ def main(args,time_f):
             g_optimizer.zero_grad()
 
             fake_decision = d_model(sparams,vparams, fake_images)
-            g_loss = - args.adv_loss_weight * torch.mean(fake_decision)
+            if args.arch.upper() == "INSITU":
+                g_loss = args.gan_loss_weight * torch.mean(F.softplus(-fake_decision))
+            else:
+                g_loss = - args.adv_loss_weight * torch.mean(fake_decision)
             
             if args.perc_loss:
                 images = ( (images +1.) * .5 - norm_mean) / norm_std
