@@ -1,5 +1,5 @@
-from deepwater.dataset import DeepWaterDataset
-from nyx.dataset import NyxDataset
+from .deepwater.dataset import DeepWaterDataset
+from .nyx.dataset import NyxDataset
 
 def get_dataset(args,data_list):
     if args.dataset.upper()=='NYX':
