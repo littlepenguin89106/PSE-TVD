@@ -7,13 +7,12 @@ def get_models(args):
         'dspe':args.dspe,
         'dvp':args.dvp,
         'dvpe':args.dvpe,
-        'ch':args.ch,
     }
     if args.arch.upper() == 'INSITU':
-        g_model = InsituG(**kwargs)
-        d_model = InsituD(**kwargs)
+        g_model = InsituG(**kwargs,ch=args.ch)
+        d_model = InsituD(**kwargs,ch=args.d_ch)
     else:
-        g_model = SelfModG(**kwargs,hidden_nums=args.hidden_nums)
-        d_model = SelfModD(**kwargs)
+        g_model = SelfModG(**kwargs,ch=args.ch,hidden_nums=args.hidden_nums)
+        d_model = SelfModD(**kwargs,ch=args.d_ch)
 
     return g_model,d_model

@@ -66,6 +66,8 @@ def basic_parser():
                     help="dimensions of the simulation parameters' encode")
     parser.add_argument("--ch", type=int, default=32,
                         help="channel multiplier")
+    parser.add_argument("--d-ch", type=int, default=32,
+                        help="channel multiplier")
     parser.add_argument("--hidden-nums", type=int, default=None,
                     help="number of hidden node in self mod")
 
