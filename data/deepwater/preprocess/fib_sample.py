@@ -37,7 +37,8 @@ def gtf1(dMin,dMax,dRange):
 def gtf2(dMin,dMax,dRange):
     gradientTransferFunction = vtk.vtkPiecewiseFunction()
     gradientTransferFunction.AllowDuplicateScalarsOn()
-    gradientTransferFunction.AddPoint(0, 0.02)
+    gradientTransferFunction.AddPoint(0, 0.002)
+    gradientTransferFunction.AddPoint(0.005, 0.05)
     gradientTransferFunction.AddPoint(dRange, 1)
     return gradientTransferFunction
 
